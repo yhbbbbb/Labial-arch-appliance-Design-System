@@ -127,6 +127,13 @@
     <!-- 初始导入弹窗 -->
     <div id="initial-modal">
         <div class="modal-content">
+            <!-- 新增关闭按钮 -->
+            <button id="close-modal" class="modal-close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </button>
+
             <div class="modal-title">导入模型</div>
             <input type="file" id="import-stl" class="hidden" accept=".stl">
             <label for="import-stl" class="modal-btn">导入STL模型</label>
@@ -273,6 +280,16 @@
                 document.getElementById('initial-modal').style.display = 'flex';
             });
 
+            document.getElementById('close-modal').addEventListener('click', () => {
+                const modal = document.getElementById('initial-modal');
+                modal.style.display = 'none';
+
+                // 如果没有模型，禁用页面操作
+                if (!dentalModel) {
+                    disablePageInteraction();
+                }
+            });
+
             document.getElementById('export-btn').addEventListener('click', exportJSON);
             document.getElementById('save-btn').addEventListener('click', saveToLocal);
             document.getElementById('undo-btn').addEventListener('click', undo);
@@ -332,6 +349,7 @@
                 const geometry = new STLLoader().parse(e.target.result);
                 geometry.center();
                 geometry.computeVertexNormals();
+                enablePageInteraction();
 
                 const material = new THREE.MeshStandardMaterial({
                     color: 0xe0e0e0,
@@ -651,6 +669,8 @@
             document.getElementById('save-btn').disabled = true;
             document.getElementById('step-2').style.display = 'none';
 
+             // 禁用页面交互
+            disablePageInteraction();
             // 显示初始弹窗
             document.getElementById('initial-modal').style.display = 'flex';
         }
@@ -689,6 +709,7 @@
 
             const reader = new FileReader();
             reader.onload = (e) => {
+                enablePageInteraction();
                 try {
                     const data = JSON.parse(e.target.result);
                     if (data.points && Array.isArray(data.points)) {
@@ -772,6 +793,48 @@
             orbitControls.update();
             renderer.render(scene, camera);
         }
+
+        // 禁用页面交互（除导入功能外）
+function disablePageInteraction() {
+    // 禁用顶部导航栏按钮
+    document.getElementById('export-btn').disabled = true;
+    document.getElementById('save-btn').disabled = true;
+    document.getElementById('undo-btn').disabled = true;
+    document.getElementById('redo-btn').disabled = true;
+    document.getElementById('clear-design').disabled = true;
+    document.getElementById('reset-all').disabled = true;
+
+    // 禁用控制面板操作
+    document.getElementById('plane-adjust').disabled = true;
+    document.getElementById('plane-confirm').disabled = true;
+    document.getElementById('plane-reset').disabled = true;
+    document.getElementById('mode-manual').disabled = true;
+    document.getElementById('mode-auto').disabled = true;
+
+    // 禁用画布交互
+    if (dragControls) dragControls.enabled = false;
+}
+
+    // 启用页面交互
+    function enablePageInteraction() {
+        // 启用顶部导航栏按钮
+        document.getElementById('export-btn').disabled = false;
+        document.getElementById('save-btn').disabled = false;
+        document.getElementById('undo-btn').disabled = false;
+        document.getElementById('redo-btn').disabled = false;
+        document.getElementById('clear-design').disabled = false;
+        document.getElementById('reset-all').disabled = false;
+
+        // 启用控制面板操作
+        document.getElementById('plane-adjust').disabled = false;
+        document.getElementById('plane-confirm').disabled = false;
+        document.getElementById('plane-reset').disabled = false;
+        document.getElementById('mode-manual').disabled = false;
+        document.getElementById('mode-auto').disabled = false;
+
+        // 启用画布交互
+        if (dragControls) dragControls.enabled = true;
+    }
 
         // 启动应用
         init();
