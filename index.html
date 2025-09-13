@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>唇弓三维设计软件</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav id="top-nav">
+    <div class="left-group">
+        <button class="nav-btn" id="import-btn" data-tooltip="导入">
+            <img src="icon\上传.png" alt="导入" width="38" height="38">
+        </button>
+        <div class="divider"></div> <!-- 分隔线 -->
+        <button class="nav-btn" id="export-btn" disabled data-tooltip="导出">
+            <img src="icon\导出.png" alt="导出" width="38" height="38">
+        </button>
+        <div class="divider"></div> <!-- 分隔线 -->
+        <button class="nav-btn" id="save-btn" disabled data-tooltip="保存">
+            <img src="icon\保存.png" alt="保存" width="38" height="38">
+        </button>
+    </div>
+    <div class="right-group">
+        <button class="nav-btn" id="undo-btn" disabled data-tooltip="撤销 <b>Ctrl+Z</b>">
+            <img src="icon\撤销.png" alt="撤销" width="38" height="38">
+        </button>
+        <button class="nav-btn" id="redo-btn" disabled data-tooltip="返回 <b>Ctrl+Y</b>">
+            <img src="icon\返回.png" alt="返回" width="38" height="38">
+        </button>
+        <div class="dropdown">
+            <button class="nav-btn" data-tooltip="清除选项">
+                <img src="icon\清除.png" alt="清除" width="38" height="38">
+            </button>
+            <div class="dropdown-content">
+                <button id="clear-design">清除当前设计</button>
+                <button id="reset-all" style="color: #ff6b6b;">重置所有（不可撤销）</button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+    <!-- 右侧控制面板 -->
+    <div id="control-panel">
+        <div class="panel-header" id="panel-toggle">
+            <div class="panel-title">控制面板</div>
+            <div class="panel-toggle">▼</div>
+        </div>
+        <div class="panel-content" id="panel-content">
+            <!-- Step 1: 建立参考平面 -->
+            <div class="step-section" id="step-1">
+                <div class="step-title">Step 1: 建立参考平面</div>
+                <div class="step-actions">
+                    <button class="step-btn btn-primary" id="plane-adjust">调整</button>
+                    <button class="step-btn btn-secondary" id="plane-confirm" disabled>确认</button>
+                    <button class="step-btn btn-secondary" id="plane-reset">重置</button>
+                </div>
+                <div class="slider-control">
+                    <label>透明度</label>
+                    <input type="range" id="plane-opacity" min="0" max="100" value="50">
+                    <span class="slider-value" id="opacity-value">50%</span>
+                </div>
+                <div class="guide-text">
+                    提示：在牙模前牙1/2处至两侧尖牙中1/2处，点击3个点定义平面
+                </div>
+            </div>
+
+            <!-- Step 2: 设计模式选择 -->
+            <div class="step-section" id="step-2" style="display: none;">
+                <div class="step-title">Step 2: 选择设计模式</div>
+                <div class="step-actions">
+                    <button class="step-btn btn-secondary" id="mode-manual">手动模式</button>
+                    <button class="step-btn btn-secondary" id="mode-auto">智能模式</button>
+                </div>
+                <div class="guide-text">
+                    手动模式：自由调整每段路径<br>
+                    智能模式：自动生成符合正畸标准的唇弓曲线
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- 底部控制区容器（整合指示器和操作栏） -->
+    <div class="bottom-controls-container">
+        <!-- 方位指示器（左侧） -->
+        <div id="orientation" class="orientation-indicator">
+            <canvas id="orientation-canvas"></canvas>
+        </div>
+
+        <!-- 底部操作栏（右侧，在指示器右边） -->
+        <div id="control-bar">
+            <!-- 样式调整按钮 -->
+            <button class="control-btn" id="style-adjust">
+                <span class="btn-text">样式调整</span>
+            </button>
+
+            <!-- 参数调整按钮 -->
+            <button class="control-btn" id="param-adjust">
+                <span class="btn-text">参数调整</span>
+            </button>
+
+            <!-- 灰色分割线 -->
+            <div class="divider"></div>
+
+            <!-- 节点操作按钮 -->
+            <button class="control-btn" id="add-node">添加节点</button>
+            <button class="control-btn" id="delete-node">删除节点</button>
+            <button class="control-btn" id="edit-node">调整节点</button>
+
+            <!-- 灰色分割线 -->
+            <div class="divider"></div>
+
+            <!-- 视角切换按钮 -->
+            <button class="control-btn" id="view-switch">视角切换</button>
+        </div>
+    </div>
+
+    <!-- 主画布 -->
+    <div id="canvas-container">
+        <canvas id="main-canvas"></canvas>
+    </div>
+
+    <!-- 初始导入弹窗 -->
+    <div id="initial-modal">
+        <div class="modal-content">
+            <div class="modal-title">导入模型</div>
+            <input type="file" id="import-stl" class="hidden" accept=".stl">
+            <label for="import-stl" class="modal-btn">导入STL模型</label>
+            <input type="file" id="import-json" class="hidden" accept=".json">
+            <label for="import-json" class="modal-btn">导入JSON设计</label>
+        </div>
+    </div>
+
+    <!-- 帮助弹窗 -->
+    <div id="help-modal">
+        <div class="help-content">
+            <div class="help-title">操作说明</div>
+            <div class="help-section">
+                <h4>参考平面设置</h4>
+                <p>在Step 1中，点击"调整"按钮后，在牙模上点击3个点定义参考平面。点击"确认"完成设置，"重置"可重新选择点。平面透明度可通过滑块调节。</p>
+            </div>
+            <div class="help-section">
+                <h4>设计模式</h4>
+                <p>手动模式：允许自由绘制唇弓路径，可通过点击添加控制点并拖拽调整。</p>
+                <p>智能模式：根据参考平面自动生成标准唇弓曲线，支持微调控制点。</p>
+            </div>
+            <div class="help-section">
+                <h4>底部操作盘</h4>
+                <p>中心按钮：重置视图到初始角度</p>
+                <p>顶部按钮：显示/隐藏参考平面</p>
+                <p>底部按钮：锁定/解锁参考平面（防止误操作）</p>
+                <p>左侧按钮：显示操作说明</p>
+                <p>右侧按钮：调节模型透明度</p>
+            </div>
+            <button class="close-help" id="close-help">关闭</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { DragControls } from 'three/addons/controls/DragControls.js';
+
+        // 全局变量
+        let scene, camera, renderer, orbitControls;
+        let dentalModel = null;
+        let planeControlPoints = [], referencePlaneMesh = null;
+        let points = [], pointMarkers = [], draggableObjects = [];
+        let dragControls = null;
+        let historyStack = [], redoStack = [];
+        let isPlaneLocked = false, isPanelExpanded = true;
+        let indicatorScene, indicatorCamera, indicatorRenderer;
+
+        // DOM元素
+        const mainCanvas = document.getElementById('main-canvas');
+        const orientationCanvas = document.getElementById('orientation-canvas');
+
+        // 初始化函数
+        function init() {
+            // 初始化场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+
+            // 初始化相机
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 50, 150);
+
+            // 初始化渲染器
+            renderer = new THREE.WebGLRenderer({ canvas: mainCanvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // 添加光源
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(50, 100, 75);
+            scene.add(directionalLight);
+
+            // 初始化控制器
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.1;
+
+            // 初始化方位指示器
+            initOrientationIndicator();
+
+            // 窗口大小调整
+            window.addEventListener('resize', onWindowResize);
+
+            // 绑定事件
+            bindEvents();
+
+            // 启动动画循环
+            animate();
+        }
+
+        // 初始化方位指示器
+        function initOrientationIndicator() {
+            indicatorScene = new THREE.Scene();
+            indicatorScene.background = new THREE.Color(0x2a2a40);
+
+            indicatorCamera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+            indicatorCamera.position.set(50, 0, 0);
+            indicatorCamera.lookAt(0, 0, 0);
+
+            // 添加简化模型
+            const dummyGeo = new THREE.BoxGeometry(3, 1, 4);
+            const dummyMat = new THREE.MeshBasicMaterial({ color: 0xe0e0e0 });
+            const dummyMesh = new THREE.Mesh(dummyGeo, dummyMat);
+            indicatorScene.add(dummyMesh);
+
+            // 添加坐标轴
+            const axes = new THREE.AxesHelper(5);
+            indicatorScene.add(axes);
+
+            // 初始化渲染器
+            indicatorRenderer = new THREE.WebGLRenderer({ canvas: orientationCanvas, antialias: true });
+            indicatorRenderer.setSize(120, 120);
+
+            // 同步主相机视角
+            orbitControls.addEventListener('change', () => {
+                indicatorCamera.quaternion.copy(camera.quaternion);
+                indicatorRenderer.render(indicatorScene, indicatorCamera);
+            });
+            indicatorRenderer.render(indicatorScene, indicatorCamera);
+        }
+
+        // 窗口大小调整
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 事件绑定
+        function bindEvents() {
+            // 顶部导航栏事件
+            document.getElementById('import-btn').addEventListener('click', () => {
+                document.getElementById('initial-modal').style.display = 'flex';
+            });
+
+            document.getElementById('export-btn').addEventListener('click', exportJSON);
+            document.getElementById('save-btn').addEventListener('click', saveToLocal);
+            document.getElementById('undo-btn').addEventListener('click', undo);
+            document.getElementById('redo-btn').addEventListener('click', redo);
+            document.getElementById('clear-design').addEventListener('click', clearCurrentDesign);
+            document.getElementById('reset-all').addEventListener('click', resetAll);
+
+            // 控制面板事件
+            document.getElementById('panel-toggle').addEventListener('click', togglePanel);
+            document.getElementById('plane-adjust').addEventListener('click', enterPlaneAdjustMode);
+            document.getElementById('plane-confirm').addEventListener('click', confirmPlane);
+            document.getElementById('plane-reset').addEventListener('click', resetPlane);
+            document.getElementById('plane-opacity').addEventListener('input', (e) => {
+                const value = e.target.value;
+                document.getElementById('opacity-value').textContent = `${value}%`;
+                if (referencePlaneMesh) {
+                    referencePlaneMesh.material.opacity = value / 100;
+                }
+            });
+
+            // 设计模式选择
+            document.getElementById('mode-manual').addEventListener('click', () => setDesignMode('manual'));
+            document.getElementById('mode-auto').addEventListener('click', () => setDesignMode('auto'));
+
+            // 底部操作盘事件
+            // document.getElementById('reset-view').addEventListener('click', resetCameraView);
+            // document.getElementById('toggle-plane').addEventListener('click', togglePlaneVisibility);
+            // document.getElementById('lock-plane').addEventListener('click', togglePlaneLock);
+            // document.getElementById('show-help').addEventListener('click', () => {
+            //     document.getElementById('help-modal').style.display = 'flex';
+            // });
+            // document.getElementById('close-help').addEventListener('click', () => {
+            //     document.getElementById('help-modal').style.display = 'none';
+            // });
+
+            // 初始弹窗导入事件
+            document.getElementById('import-stl').addEventListener('change', loadSTL);
+            document.getElementById('import-json').addEventListener('change', importJSON);
+
+            // 画布点击事件
+            mainCanvas.addEventListener('click', onCanvasClick);
+
+            // 快捷键
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'z') undo();
+                if (e.ctrlKey && e.key === 'y') redo();
+            });
+        }
+
+        // 加载STL模型
+        function loadSTL(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const geometry = new STLLoader().parse(e.target.result);
+                geometry.center();
+                geometry.computeVertexNormals();
+
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0xe0e0e0,
+                    metalness: 0.1,
+                    roughness: 0.6,
+                    transparent: true,
+                    opacity: 1.0
+                });
+
+                dentalModel = new THREE.Mesh(geometry, material);
+                dentalModel.rotation.x = -Math.PI / 2;
+                scene.add(dentalModel);
+
+                // 隐藏初始弹窗
+                document.getElementById('initial-modal').style.display = 'none';
+
+                // 启用相关按钮
+                document.getElementById('save-btn').disabled = false;
+                document.getElementById('plane-confirm').disabled = false;
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 参考平面相关函数
+        function enterPlaneAdjustMode() {
+            // 清除已有点
+            planeControlPoints.forEach(p => scene.remove(p));
+            planeControlPoints = [];
+
+            // 隐藏原有平面
+            if (referencePlaneMesh) {
+                scene.remove(referencePlaneMesh);
+                referencePlaneMesh = null;
+            }
+        }
+
+        function onCanvasClick(event) {
+            if (!dentalModel || planeControlPoints.length >= 3) return;
+
+            // 计算鼠标在标准化设备坐标中的位置
+            const rect = mainCanvas.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            // 射线检测
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+            const intersects = raycaster.intersectObject(dentalModel);
+
+            if (intersects.length > 0) {
+                // 添加控制点
+                const point = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.5, 32, 32),
+                    new THREE.MeshBasicMaterial({ color: 0x4a90e2 })
+                );
+                point.position.copy(intersects[0].point);
+                scene.add(point);
+                planeControlPoints.push(point);
+
+                // 当有3个点时生成平面
+                if (planeControlPoints.length === 3) {
+                    updateReferencePlane();
+                }
+            }
+        }
+
+        function updateReferencePlane() {
+            if (planeControlPoints.length < 3) return;
+
+            const [p1, p2, p3] = planeControlPoints.map(p => p.position);
+            const plane = new THREE.Plane().setFromCoplanarPoints(p1, p2, p3);
+
+            if (!referencePlaneMesh) {
+                const geometry = new THREE.PlaneGeometry(100, 100);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x4a90e2,
+                    opacity: 0.5,
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                referencePlaneMesh = new THREE.Mesh(geometry, material);
+                scene.add(referencePlaneMesh);
+            }
+
+            // 调整平面位置和方向
+            referencePlaneMesh.position.copy(p1);
+            referencePlaneMesh.lookAt(p1.clone().add(plane.normal));
+        }
+
+        function confirmPlane() {
+            if (planeControlPoints.length < 3) return;
+
+            // 显示Step 2
+            document.getElementById('step-2').style.display = 'block';
+
+            // 保存状态
+            saveState();
+        }
+
+        function resetPlane() {
+            planeControlPoints.forEach(p => scene.remove(p));
+            planeControlPoints = [];
+
+            if (referencePlaneMesh) {
+                scene.remove(referencePlaneMesh);
+                referencePlaneMesh = null;
+            }
+        }
+
+        // 设计模式选择
+        function setDesignMode(mode) {
+            // 重置按钮样式
+            document.getElementById('mode-manual').className = 'step-btn btn-secondary';
+            document.getElementById('mode-auto').className = 'step-btn btn-secondary';
+
+            // 高亮选中模式
+            if (mode === 'manual') {
+                document.getElementById('mode-manual').className = 'step-btn btn-primary';
+                // 初始化手动模式
+                initManualMode();
+            } else {
+                document.getElementById('mode-auto').className = 'step-btn btn-primary';
+                // 初始化智能模式
+                initAutoMode();
+            }
+
+            // 启用导出按钮
+            document.getElementById('export-btn').disabled = false;
+        }
+
+        function initManualMode() {
+            // 清空现有设计
+            clearCurrentDesign(false);
+
+            // 启用拖拽控制
+            setupDragControls();
+        }
+
+        function initAutoMode() {
+            // 清空现有设计
+            clearCurrentDesign(false);
+
+            // 自动生成初始唇弓曲线（示例逻辑）
+            if (planeControlPoints.length === 3) {
+                const [p1, p2, p3] = planeControlPoints.map(p => p.position);
+                const center = new THREE.Vector3().addVectors(p1, p2).add(p3).divideScalar(3);
+
+                // 生成几个控制点
+                for (let i = 0; i < 5; i++) {
+                    const point = new THREE.Vector3(
+                        center.x + (i - 2) * 5,
+                        center.y + 2,
+                        center.z
+                    );
+                    points.push(point);
+                }
+
+                // 刷新场景
+                redrawScene();
+                setupDragControls();
+            }
+        }
+
+        // 拖拽控制
+        function setupDragControls() {
+            if (dragControls) dragControls.dispose();
+
+            dragControls = new DragControls(draggableObjects, camera, mainCanvas);
+            dragControls.addEventListener('dragstart', (event) => {
+                orbitControls.enabled = false;
+                event.object.material.color.set(0xffcc00);
+            });
+
+            dragControls.addEventListener('drag', (event) => {
+                points[event.object.userData.index].copy(event.object.position);
+                updateArchCurve();
+            });
+
+            dragControls.addEventListener('dragend', (event) => {
+                orbitControls.enabled = true;
+                event.object.material.color.set(0xff0000);
+                saveState();
+            });
+        }
+
+        // 场景刷新
+        function redrawScene() {
+            // 清除现有标记
+            pointMarkers.forEach(marker => scene.remove(marker));
+            pointMarkers = [];
+            draggableObjects = [];
+
+            // 重新创建标记
+            points.forEach((p, i) => {
+                const marker = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.5, 16, 16),
+                    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+                );
+                marker.position.copy(p);
+                marker.userData.index = i;
+                scene.add(marker);
+                pointMarkers.push(marker);
+                draggableObjects.push(marker);
+            });
+
+            // 更新曲线
+            updateArchCurve();
+        }
+
+        function updateArchCurve() {
+            // 清除现有曲线
+            const oldCurve = scene.getObjectByName('arch-curve');
+            if (oldCurve) scene.remove(oldCurve);
+
+            if (points.length < 2) return;
+
+            // 创建新曲线
+            const curve = new THREE.CatmullRomCurve3(points);
+            const geometry = new THREE.TubeGeometry(curve, 100, 0.3, 8, false);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x4a90e2,
+                metalness: 0.5,
+                roughness: 0.3
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.name = 'arch-curve';
+            scene.add(mesh);
+        }
+
+        // 历史记录管理
+        function saveState() {
+            const state = {
+                points: points.map(p => p.clone()),
+                planePoints: planeControlPoints.map(p => p.position.clone())
+            };
+            historyStack.push(state);
+            redoStack = [];
+            updateHistoryButtons();
+        }
+
+        function undo() {
+            if (historyStack.length === 0) return;
+
+            const currentState = {
+                points: points.map(p => p.clone()),
+                planePoints: planeControlPoints.map(p => p.position.clone())
+            };
+            redoStack.push(currentState);
+
+            const prevState = historyStack.pop();
+            restoreState(prevState);
+            updateHistoryButtons();
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+
+            const currentState = {
+                points: points.map(p => p.clone()),
+                planePoints: planeControlPoints.map(p => p.position.clone())
+            };
+            historyStack.push(currentState);
+
+            const nextState = redoStack.pop();
+            restoreState(nextState);
+            updateHistoryButtons();
+        }
+
+        function restoreState(state) {
+            // 恢复点
+            points = state.points.map(p => p.clone());
+
+            // 恢复平面控制点
+            planeControlPoints.forEach((p, i) => {
+                if (state.planePoints[i]) p.position.copy(state.planePoints[i]);
+            });
+
+            // 更新平面
+            if (planeControlPoints.length === 3) updateReferencePlane();
+
+            // 刷新场景
+            redrawScene();
+        }
+
+        function updateHistoryButtons() {
+            document.getElementById('undo-btn').disabled = historyStack.length === 0;
+            document.getElementById('redo-btn').disabled = redoStack.length === 0;
+        }
+
+        // 清除和重置
+        function clearCurrentDesign(saveHistory = true) {
+            if (saveHistory) saveState();
+            points = [];
+            redrawScene();
+        }
+
+        function resetAll() {
+            // 清除模型
+            if (dentalModel) {
+                scene.remove(dentalModel);
+                dentalModel = null;
+            }
+
+            // 清除平面
+            resetPlane();
+
+            // 清除设计
+            clearCurrentDesign(false);
+
+            // 重置历史
+            historyStack = [];
+            redoStack = [];
+            updateHistoryButtons();
+
+            // 禁用按钮
+            document.getElementById('export-btn').disabled = true;
+            document.getElementById('save-btn').disabled = true;
+            document.getElementById('step-2').style.display = 'none';
+
+            // 显示初始弹窗
+            document.getElementById('initial-modal').style.display = 'flex';
+        }
+
+        // 导出和保存
+        function exportJSON() {
+            const data = {
+                points: points.map(p => ({ x: p.x, y: p.y, z: p.z })),
+                plane: planeControlPoints.map(p => ({ x: p.position.x, y: p.position.y, z: p.position.z })),
+                timestamp: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'arch_design.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function saveToLocal() {
+            const data = {
+                points: points.map(p => ({ x: p.x, y: p.y, z: p.z })),
+                plane: planeControlPoints.map(p => ({ x: p.position.x, y: p.position.y, z: p.position.z }))
+            };
+            localStorage.setItem('dentalDesign', JSON.stringify(data));
+
+            // 显示保存提示（可添加）
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.points && Array.isArray(data.points)) {
+                        // 加载点数据
+                        points = data.points.map(p => new THREE.Vector3(p.x, p.y, p.z));
+                        redrawScene();
+
+                        // 加载平面数据
+                        if (data.plane && data.plane.length === 3) {
+                            enterPlaneAdjustMode();
+                            data.plane.forEach((p, i) => {
+                                const point = new THREE.Mesh(
+                                    new THREE.SphereGeometry(0.5, 32, 32),
+                                    new THREE.MeshBasicMaterial({ color: 0x4a90e2 })
+                                );
+                                point.position.set(p.x, p.y, p.z);
+                                scene.add(point);
+                                planeControlPoints.push(point);
+                            });
+                            updateReferencePlane();
+                            confirmPlane();
+                        }
+
+                        document.getElementById('initial-modal').style.display = 'none';
+                        document.getElementById('export-btn').disabled = false;
+                        document.getElementById('save-btn').disabled = false;
+                    }
+                } catch (error) {
+                    console.error('导入失败:', error);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 控制面板折叠/展开
+        function togglePanel() {
+            isPanelExpanded = !isPanelExpanded;
+            const content = document.getElementById('panel-content');
+            const toggle = document.getElementById('panel-toggle').querySelector('.panel-toggle');
+
+            if (isPanelExpanded) {
+                content.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▲';
+            }
+        }
+
+        // 其他辅助函数
+        function resetCameraView() {
+            camera.position.set(0, 50, 150);
+            camera.lookAt(0, 0, 0);
+            orbitControls.update();
+        }
+
+        function togglePlaneVisibility() {
+            if (referencePlaneMesh) {
+                referencePlaneMesh.visible = !referencePlaneMesh.visible;
+            }
+        }
+
+        function togglePlaneLock() {
+            isPlaneLocked = !isPlaneLocked;
+            const btn = document.getElementById('lock-plane');
+            btn.innerHTML = isPlaneLocked ? `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M12 1a1 1 0 0 1 1 1v4h-1V2a0 0 0-1-1 0V1h-2v4H7V1H5v4H4V2a0 0 0-1-1 0V1a1 1 0 0 1 1-1h6zM4 9v5a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V9H4zm2-1h4v6a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V8z"/>
+                    <path d="M9.5 2.646a.5.5 0 1 0-1 .092L11.975 9.5l-5.684 2.843a.5.5 0 0 0-.274.92l6 3a.5.5 0 0 0 .548-.832l-6-3a.5.5 0 0 0-.616-.105L6.5 12.5l7.5-3.75z"/>
+                </svg>
+            ` : `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                </svg>
+            `;
+        }
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            orbitControls.update();
+            renderer.render(scene, camera);
+        }
+
+        // 启动应用
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,442 @@
+body {
+    margin: 0;
+    font-family: 'Inter', 'Microsoft YaHei', sans-serif;
+    overflow: hidden;
+    background-color: #e6f7ff; /* 浅蓝色背景，与示例图匹配 */
+}
+
+#canvas-container {
+    width: 100vw;
+    height: 100vh;
+}
+
+/* 顶部导航栏 - 改良样式 */
+#top-nav {
+    position: fixed;
+    top: 5px; /* 顶部保留5px距离 */
+    left: 10px;
+    right: 10px;
+    height: 50px;
+    background-color: white; /* 白色背景 */
+    border-radius: 10px; /* 圆角设计 */
+    box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3); /* 黑色阴影，近似45°角度 */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+}
+
+.left-group, .right-group {
+    display: flex; /* 水平排列 */
+    align-items: center; /* 垂直居中对齐按钮 */
+}
+
+.nav-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px; /* 增大点击区域 */
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* 图标显示规则：消除默认间隙 */
+.nav-btn img {
+    display: block;
+}
+
+/* 分隔线样式：1.5磅 #E7E6E6 实线 */
+.divider {
+    width: 0;
+    height: 24px; /* 匹配图标垂直居中高度 */
+    border-right: 1.5px solid #E7E6E6;
+    margin: 0 8px; /* 分隔线两侧间距 */
+}
+
+.nav-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 按钮图标尺寸 - 1cm ≈ 38px */
+.nav-btn svg {
+    width: 38px;
+    height: 38px;
+    fill: #E3F2D9; /* 填充色 */
+    stroke: #ACD78E; /* 线条色 */
+    stroke-width: 1; /* 线条宽度 */
+    stroke-linecap: round; /* 线条端点样式 */
+    stroke-linejoin: round; /* 线条连接样式 */
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    min-width: 150px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 101;
+    display: none;
+}
+
+.dropdown-content button {
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    color: #333;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.dropdown-content button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* 右侧控制面板 - 调整为示例图风格 */
+#control-panel {
+    position: fixed;
+    top: 65px; /* 与导航栏保持距离 */
+    right: 10px;
+    width: 200px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 90;
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+
+.panel-header {
+    padding: 8px 12px;
+    background-color: #0066cc;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+}
+
+.panel-title {
+    color: white;
+    font-weight: 600;
+}
+
+.panel-toggle {
+    color: white;
+    font-size: 18px;
+}
+
+.panel-content {
+    padding: 12px;
+}
+
+.step-section {
+    margin-bottom: 16px;
+}
+
+.step-title {
+    color: #0066cc;
+    font-size: 14px;
+    margin-bottom: 8px;
+    font-weight: bold;
+    padding: 4px;
+    background-color: #e6f2ff;
+    border-radius: 4px;
+}
+
+.step-actions {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 12px;
+}
+
+.step-btn {
+    flex: 1;
+    padding: 5px 0;
+    border-radius: 4px;
+    border: 1px solid #ACD78E; /* 按钮边框色 */
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: #E3F2D9; /* 填充色 */
+    color: #333;
+}
+
+.btn-primary:hover {
+    background-color: #d0e9c0;
+}
+
+.btn-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background-color: #e6e6e6;
+}
+
+.step-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.guide-text {
+    color: #666;
+    font-size: 11px;
+    line-height: 1.4;
+    margin-top: 5px;
+}
+
+.slider-control {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 8px 0;
+}
+
+.slider-control label {
+    color: #666;
+    font-size: 11px;
+    width: 50px;
+}
+
+.slider-control input {
+    flex: 1;
+}
+
+.slider-value {
+    color: #666;
+    font-size: 11px;
+    width: 30px;
+    text-align: right;
+}
+
+/* 底部控制区 */
+#bottom-controls {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 90;
+}
+
+.orientation-indicator {
+    width: 120px;
+    height: 120px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    border: 1px solid #ccc;
+        position: fixed; /* 固定定位，相对于浏览器窗口 */
+    bottom: 10px; /* 距离底部10px */
+    left: 10px; /* 距离左侧10px */
+    z-index: 90; /* 确保在主画布上方显示 */
+}
+
+.control-btn {
+    background-color: #ACD78E; /* 填充色 */
+    border: 1px solid #588E32; /* 线条色 */
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+    font-size: 12px;
+}
+
+.reset-view-btn {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #E3F2D9; /* 填充色 */
+    border: 1px solid #ACD78E; /* 线条色 */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 90;
+}
+
+/* 初始弹窗 */
+#initial-modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.modal-content {
+    width: 90%;
+    max-width: 400px;
+    border-radius: 8px;
+    border: 2px solid #ACD78E; /* 线条色 - 实线 */
+    background-color: #E3F2D9; /* 填充色 */
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-title {
+    color: #333;
+    font-size: 20px;
+    margin-bottom: 24px;
+}
+
+.modal-btn {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 16px;
+    border-radius: 4px;
+    border: 2px solid #ACD78E; /* 线条色 - 实线 */
+    background-color: #E3F2D9; /* 填充色 */
+    color: #333;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-btn:hover {
+    background-color: #d0e9c0;
+}
+
+/* 帮助弹窗 */
+#help-modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.help-content {
+    width: 90%;
+    max-width: 600px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 24px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.help-title {
+    color: #333;
+    font-size: 20px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.help-section {
+    margin-bottom: 16px;
+}
+
+.help-section h4 {
+    color: #0066cc;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.help-section p {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.close-help {
+    background-color: #E3F2D9; /* 填充色 */
+    color: #333;
+    border: 1px solid #ACD78E; /* 线条色 */
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 16px;
+}
+
+/* 底部控制区容器：横向排列子元素 */
+.bottom-controls-container {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    display: flex; /* 横向排列操作栏和指示器 */
+    align-items: center; /* 垂直居中对齐 */
+    gap: 10px; /* 两者之间间隔10px，避免重叠 */
+    z-index: 90; /* 确保在主画布上方 */
+}
+
+/* 底部操作栏样式 */
+#control-bar {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    border: 1px solid #ccc;
+}
+
+/* 操作按钮样式 */
+.control-btn {
+    padding: 6px 10px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+}
+.control-btn:hover {
+    background-color: #f0f0f0;
+}
+
+/* 分割线样式 */
+.divider {
+    width: 1px;
+    height: 20px;
+    background-color: #ddd;
+    margin: 0 3px;
+}
+
+/* 方位指示器样式（右侧，与操作栏并排） */
+.orientation-indicator {
+    width: 120px;
+    height: 120px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    border: 1px solid #ccc;
+    overflow: hidden;
+}
