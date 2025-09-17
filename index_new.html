@@ -1,0 +1,1237 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <!-- 外部资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 主容器 -->
+    <div id="container" class="w-screen h-screen">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <nav id="top-nav">
+        <div class="left-group">
+            <button class="nav-btn" id="import-btn" data-tooltip="导入">
+                <img src="icon\上传.png" alt="导入" width="38" height="38">
+            </button>
+            <div class="divider"></div>
+            <button class="nav-btn" id="export-json" disabled data-tooltip="导出" >
+                <img src="icon\保存.png" alt="导出" width="38" height="38">
+<!--            </button>-->
+<!--            <div class="divider"></div>-->
+<!--            <button class="nav-btn" id="save-btn" disabled data-tooltip="保存">-->
+<!--                <img src="icon\保存.png" alt="保存" width="38" height="38">-->
+<!--            </button>-->
+            <div class="divider"></div>
+            <button class="nav-btn" id="help-btn" data-tooltip="帮助"> <!-- 修正id拼写错误 -->
+                <img src="icon\帮助.png" alt="帮助" width="38" height="38">
+            </button>
+        </div>
+        <div class="right-group">
+            <button class="nav-btn" id="undo-action" disabled data-tooltip="返回 <b>Ctrl+Z</b>">
+                <img src="icon\返回.png" alt="返回" width="38" height="38">
+            </button>
+            <div class="divider"></div>
+            <button class="nav-btn" id="redo-btn" disabled data-tooltip="重做 <b>Ctrl+Y</b>">
+                <img src="icon\重做.png" alt="重做" width="38" height="38">
+            </button>
+            <div class="divider"></div>
+            <div class="dropdown">
+                <button class="nav-btn" data-tooltip="清除选项">
+                    <img src="icon\清除.png" alt="清除" width="38" height="38">
+                </button>
+                <div class="dropdown-content">
+                    <button id="clear-drawing">清除当前设计</button>
+                    <button id="reset-all" style="color: #ff6b6b;">重置所有（包括参考平面且不可撤回）</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 初始导入弹窗 -->
+    <div id="initial-modal">
+        <div class="modal-content">
+            <button id="close-modal" class="modal-close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </button>
+            <div class="modal-title">导入模型</div>
+            <input type="file" id="stl-loader" class="hidden" accept=".stl">
+            <label for="stl-loader" class="modal-btn">导入STL模型</label>
+            <input type="file" id="json-importer" class="hidden" accept=".json">
+            <label for="json-importer" class="modal-btn">导入JSON设计</label>
+            <div id="loader" class="loader mt-4 hidden mx-auto"></div>
+        </div>
+    </div>
+
+
+
+    <!-- 底部操作栏 -->
+    <div id="control-bar">
+        <button class="control-btn" id="style-adjust">样式调整</button>
+        <button class="control-btn" id="param-adjust">参数调整</button>
+        <div class="divider"></div>
+        <button class="control-btn" id="toggle-draw-mode">添加节点</button>
+        <button class="control-btn" id="toggle-edit-mode">调整节点</button>
+        <button class="control-btn" id="generate-uloop">生成U曲</button>
+        <button class="control-btn" id="delete-mode">删除节点</button>
+
+        <div class="divider"></div>
+        <button class="control-btn" id="view-switch">视角切换</button>
+    </div>
+
+
+    <!-- 样式调整弹窗 -->
+    <div id="style-modal">
+        <div>
+            <h3>样式调整</h3>
+            <div class="space-y-6">
+                <!-- 模型透明度控制 -->
+                <div class="slider-control">
+                    <label>模型透明度</label>
+                    <input type="range" id="model-opacity" min="0" max="100" value="100">
+                    <span class="slider-value" id="model-opacity-value">1.0</span>
+                </div>
+                <!-- 平面透明度控制 -->
+                <div class="slider-control">
+                    <label>平面透明度</label>
+                    <input type="range" id="plane-opacity-adjust" min="0" max="100" value="50">
+                    <span class="slider-value" id="plane-opacity-value">0.5</span>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button id="close-style">关闭</button>
+            </div>
+        </div>
+    </div>
+
+        <!-- 右侧控制面板 -->
+    <div id="control-panel">
+        <div class="panel-header" id="panel-toggle">
+            <div class="panel-title">控制面板</div>
+            <div class="panel-toggle">▼</div>
+        </div>
+        <div class="panel-content" id="panel-content">
+            <!-- 步骤1：建立参考平面 -->
+            <div class="step-section" id="step-1">
+                <div class="step-title">Step 1: 建立参考平面</div>
+                <div id="plane-setup-section" class="step-actions">
+                    <div>
+                        <button class="step-btn btn-primary" id="plane-adjust">调整</button>
+                        <button class="step-btn btn-secondary" id="plane-confirm" disabled>确认</button>
+                    </div>
+                    <div>
+                        <button class="step-btn btn-secondary" id="toggle-plane-visibility">隐藏</button>
+                        <button class="step-btn btn-secondary" id="plane-reset">重置</button>
+                    </div>
+                </div>
+                <p id="plane-status" class="text-sm text-yellow-400 mb-2"> 请在牙模上点击3个点来定义平面。 </p>
+                <div class="guide-text">
+                    提示：在牙模前牙1/2处及两侧尖牙中1/2处，点击3个点可以更好的定义参考平面
+                </div>
+            </div>
+
+            <!-- 步骤2：设计模式选择 (修改后) -->
+    <div class="step-section" id="step-2" style="display: none;">
+        <div class="step-title">Step 2: 选择设计模式</div>
+        <div class="step-actions">
+            <div id="design-section" class="mb-4 hidden">
+            <button class="step-btn btn-secondary" id="mode-manual">自由绘制</button>
+             <button class="step-btn btn-secondary" id="mode-auto">智能生成</button>
+
+            </div>
+            </div>
+        <div class="guide-text">
+                手动模式：自由添加点并调整每段路径<br>
+                智能模式：基于5个参考点生成平滑曲线
+        </div>
+    <!-- 智能模式参数控制 -->
+    </div>
+    <div class="step-section" id="step-2.1" style="display: none;">
+        <div class="step-title">当前模式: 自由绘制</div>
+        <div class="mb-2">
+                <label for="design-mode-select" class="text-sm font-medium text-gray-400"> 设计模式: </label>
+                <select id="design-mode-select" class="w-full bg-gray-700 border border-gray-600 rounded-md p-1 text-sm text-white mt-1">
+                    <option value="straight"> 自由绘制 (直线) </option>
+                    <option value="smooth"> 自由绘制 (平滑) </option>
+                    <option value="labial_bow"> 唇弓 </option>
+                </select>
+            </div>
+        <span id="diameter-display" class="text-xs text-gray-400"></span>
+        <div class="step-actions">
+            <button class="step-btn btn-secondary" id="1">开始绘制</button>
+            <button class="step-btn btn-secondary" id="2">调整节点</button>
+            <button class="step-btn btn-secondary" id="3">调整节点</button>
+        </div>
+    </div>
+
+    <div id="export-section" class="mb-4 hidden">
+            <h2 class="text-lg font-medium text-gray-300 mb-2"> 4. 导出数据 </h2>
+            <div class="flex items-center space-x-3 mb-2">
+                <label for="points-count" class="text-sm"> 离散点数: </label>
+                <input type="number" id="points-count" value="100" class="w-24 bg-gray-700 border border-gray-600 rounded-md p-1 text-center">
+            </div>
+            <button id="export-json" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 transition disabled:opacity-50" disabled>
+                导出为JSON
+            </button>
+    </div>
+
+    <!-- 帮助弹窗 -->
+    <div id="help-modal">
+        <div class="help-content">
+            <div class="help-title">操作说明</div>
+            <div class="help-section">
+                <h4>参考平面设置</h4>
+                <p>在Step 1中，点击"调整"按钮后，在牙模上点击3个点定义参考平面。点击"确认"完成设置，"重置"可重新选择点。平面透明度可通过滑块调节。</p>
+            </div>
+            <div class="help-section">
+                <h4>设计模式</h4>
+                <p>手动模式：允许自由绘制唇弓路径，可通过点击添加控制点并拖拽调整。</p>
+                <p>智能模式：根据参考平面自动生成标准唇弓曲线，支持微调控制点。</p>
+            </div>
+            <div class="help-section">
+                <h4>底部操作盘</h4>
+                <p>中心按钮：重置视图到初始角度</p>
+                <p>顶部按钮：显示/隐藏参考平面</p>
+                <p>底部按钮：锁定/解锁参考平面（防止误操作）</p>
+                <p>左侧按钮：显示操作说明</p>
+                <p>右侧按钮：调节模型透明度</p>
+            </div>
+            <button class="close-help" id="close-help">关闭</button>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<!-- -&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;&#45;-->
+    <!-- 参数设置弹出面板 -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4"> 参数设置 </h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="wire-radius-input" class="block text-sm font-medium text-gray-300"> 弓丝直径 (mm) </label>
+                    <input type="number" id="wire-radius-input" step="0.1" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="marker-radius-input" class="block text-sm font-medium text-gray-300"> 点的直径 (mm) </label>
+                    <input type="number" id="marker-radius-input" step="0.1" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                 <div id="uloop-params">
+                    <div>
+                        <label for="uloop-width-input" class="block text-sm font-medium text-gray-300"> U型曲宽度 (mm) </label>
+                        <input type="number" id="uloop-width-input" step="0.5" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="mt-4">
+                        <label for="uloop-height-input" class="block text-sm font-medium text-gray-300"> U型曲高度 (mm) </label>
+                        <input type="number" id="uloop-height-input" step="0.5" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancel-settings" class="bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 transition"> 取消 </button>
+                <button id="save-settings" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700 transition"> 保存 </button>
+            </div>
+        </div>
+    </div>
+
+
+
+
+     <!-- UI界面 (可拖动) -->
+    <div id="ui-panel" class="absolute top-0 left-0 p-4 m-4 bg-gray-900 bg-opacity-80 rounded-lg shadow-xl w-full max-w-sm">
+   </div>
+
+
+<!--&#45;&#45;&#45;&#45;&#45;&#45;-->
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { DragControls } from 'three/addons/controls/DragControls.js';
+
+
+         // --- 全局参数 ---各种参数
+        let wireRadius = 0.4;                // 弓丝的半径（单位：毫米）
+        let markerRadius = 0.4;              // 标记点的半径（单位：毫米）
+        let uLoopWidth = 4.0;                // U型曲的宽度（单位：毫米）
+        let uLoopHeight = 6.0;               // U型曲的高度（单位：毫米）
+        const SELECTION_COLOR_EDIT = 0x00ff00;  // 编辑模式下选中点的颜色（绿色）
+        const SELECTION_COLOR_ULOOP = 0x9932CC; // U型曲模式下选中点的颜色（紫色）
+
+        let isPanelExpanded = true; // 控制面板展开状态
+         // --- 全局变量 ---                         可拖拽点轨道控制器
+        let scene, camera, renderer, orbitControls, dragControls;//场景，相机，渲染器，轨道控制器，拖动控制器
+         // --- 模型与几何体 ---牙膜对象
+        let dentalModel = null, points = [], archCurveObject = null, pointMarkers = [];
+        let draggableObjects = []; // All draggable markers
+        //points数组存储所有点坐标和附加信息，archCurveObject是连接点的曲线对象，一条类似于marker的线，可以直接呈现在scene，pointMarkers是显示点的球体对象
+        //draggableObjects是所有可以拖动的点对象
+         // --- 模式状态 ---绘制，编辑，平面设置，U型曲线生成
+        let isDrawingMode = false, isEditMode = false, isPlaneSetupMode = false, isULoopGenerationMode = false;
+        let labialBowControlPoints = [];//唇弓
+
+        let currentModelOpacity = 1.0, currentPlaneOpacity = 0.5; // 透明度状态
+         // --- 参考平面变量 ---平面点数组，平面网格，平面拖动控制器，平面法线
+        let planeControlPoints = [], referencePlaneMesh = null, planeDragControls = null;
+        let planeNormal = new THREE.Vector3(0, 1, 0);
+
+
+         // --- 交互变量 ---
+        let isDraggingView = false;
+        let mouseDownPos = new THREE.Vector2();
+        let uLoopSelectionIndices = [];//存放被选择u型曲的两个点的索引
+        const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+
+         // --- 历史记录栈 ---
+        let historyStack = [];
+
+
+         // --- DOM 元素 ---
+        const canvas = document.getElementById('mainCanvas');
+        const initLoaderInput = document.getElementById('import-btn');
+        // 文件操作相关
+        const stlLoaderInput = document.getElementById('stl-loader');      // STL文件加载输入
+        const jsonImporterInput = document.getElementById('json-importer'); // JSON导入输入
+        // UI部分容器
+        const planeSetupSection = document.getElementById('plane-setup-section'); // 参考平面设置区域
+        const designSection = document.getElementById('design-section');         // 唇弓设计区域
+        const exportSection = document.getElementById('export-section');         // 数据导出区域
+        // 按钮和控制元素
+        const setupPlaneModeBtn = document.getElementById('plane-adjust'); // 进入平面设置模式按钮
+        const confirmPlaneBtn = document.getElementById('plane-confirm');      // 确认平面按钮
+        const planeStatus = document.getElementById('plane-status');           // 平面状态显示文本
+        const toggleDrawModeBtn = document.getElementById('toggle-draw-mode'); // 切换绘制模式按钮
+        const toggleEditModeBtn = document.getElementById('toggle-edit-mode'); // 切换编辑模式按钮
+        const generateULoopBtn = document.getElementById('generate-uloop');    // 生成U型曲按钮
+        const clearDrawingBtn = document.getElementById('clear-drawing');      // 清除绘制按钮
+        const exportJsonBtn = document.getElementById('export-json');          // 导出JSON按钮
+        const statusMessage = document.getElementById('status-message');       // 状态消息显示区域
+        const loaderSpinner = document.getElementById('loader');               // 加载动画
+        // 设置面板相关
+        const settingsModal = document.getElementById('settings-modal');       // 设置模态框
+        const paramAdjustBtn = document.getElementById('param-adjust');      // 参数调整按钮
+        const saveSettingsBtn = document.getElementById('save-settings');      // 保存设置按钮
+        const cancelSettingsBtn = document.getElementById('cancel-settings');  // 取消设置按钮
+        const wireRadiusInput = document.getElementById('wire-radius-input');  // 弓丝半径输入
+        const markerRadiusInput = document.getElementById('marker-radius-input'); // 标记点半径输入
+        const uloopParamsDiv = document.getElementById('uloop-params');        // U型曲参数区域
+        const uloopWidthInput = document.getElementById('uloop-width-input');  // U型曲宽度输入
+        const uloopHeightInput = document.getElementById('uloop-height-input'); // U型曲高度输入
+        const diameterDisplay = document.getElementById('diameter-display');   // 直径显示区域
+        const togglePlaneVisibilityBtn = document.getElementById('toggle-plane-visibility');
+
+        // 其他功能
+        const undoBtn = document.getElementById('undo-action');           // 撤销按钮
+        const designModeSelect = document.getElementById('design-mode-select'); // 设计模式选择下拉菜单
+
+        const opacitySlider = document.getElementById('model-opacity');  // 透明度滑块
+        //清除所有（包括触参考平面）按钮事件
+        document.getElementById('reset-all').addEventListener('click', resetAll);
+        //使得初始导入窗口可以被关闭
+        document.getElementById('close-modal').addEventListener('click', () => {
+                document.getElementById('initial-modal').style.display = 'none';
+                if (!dentalModel) disablePageInteraction(); // 未导入模型则保持禁用
+            });
+        // 控制面板事件收放
+        document.getElementById('panel-toggle').addEventListener('click', togglePanel);
+        // 设计模式选择
+        document.getElementById('mode-manual').addEventListener('click', () => setDesignMode('manual'));
+        document.getElementById('mode-auto').addEventListener('click', () => setDesignMode('auto'));
+
+
+        function setupDragControls() {  //鼠标拖动点的函数---控制器
+            if (dragControls) {
+                dragControls.dispose();
+            }//如果已经有拖动控制器了，就先销毁它
+            dragControls = new DragControls(draggableObjects, camera, renderer.domElement);
+             //创建新的控制器，draggableObjects是所有可拖动的点对象，camera和渲染器的DOM元素，两者绑定
+                                           //监听拖动事件,拖动开始
+            dragControls.addEventListener('dragstart', function (event) {
+                orbitControls.enabled = false;//拖动开始时禁用轨道控制器
+                 // 设置点的颜色以指示它正在被拖动
+                event.object.material.color.set(SELECTION_COLOR_EDIT);//SELECTION_COLOR_EDIT = 0x00ff00;颜色已设置
+                saveState();//保存当前状态以便撤销,松开时可以撤销,把当前转态存于历史记录栈
+            });
+
+                                          //监听拖动事件,拖动中
+            dragControls.addEventListener('drag', function (event) {
+                // IMPORTANT: This simple drag logic is not enough for U-loops.
+                // A more complex logic would be needed to update the entire U-loop structure
+                // when one of its control points is moved. For now, we just move the point.
+                points[event.object.userData.index].copy(event.object.position);//更新拖动那个点的位置
+                updateArchCurve();//更新曲线
+            });
+
+                                       //监听拖动事件,拖动结束
+            dragControls.addEventListener('dragend', function (event) {
+                orbitControls.enabled = true;//拖动结束时重新启用轨道控制器
+                 // 恢复点的颜色
+                const index = event.object.userData.index;
+                if (uLoopSelectionIndices.includes(index)) {//如果这个点是U型曲的点
+                     event.object.material.color.set(SELECTION_COLOR_ULOOP);
+                } else {
+                    event.object.material.color.set(0xff0000);
+                }//根据情况不同变换不同颜色
+            });
+        }
+
+        function init() {
+            //初始化场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a3b4c);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 150);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            directionalLight.position.set(50, 50, 100);
+            scene.add(directionalLight);
+
+
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = false;
+
+            initStyleAdjust();
+            setupDragControls();
+
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            //为画布加上点击事件
+            canvas.addEventListener('mousedown', onCanvasMouseDown, true); // Use capture phase
+            canvas.addEventListener('mousemove', onCanvasMouseMove, false);
+            canvas.addEventListener('mouseup', onCanvasMouseUp, false);
+
+            window.addEventListener('keydown', (event) => {
+                if (event.ctrlKey && (event.key === 'z' || event.key === 'Z')) {
+                    undo();
+                }
+            });
+            initLoaderInput.addEventListener('click', showLoaderWindow);
+            stlLoaderInput.addEventListener('change', loadSTL);
+            jsonImporterInput.addEventListener('change', importJSON);
+
+            setupPlaneModeBtn.addEventListener('click', togglePlaneSetupMode);
+            confirmPlaneBtn.addEventListener('click', confirmPlane);
+            toggleDrawModeBtn.addEventListener('click', () => setMode(isDrawingMode ? 'none' : 'draw'));
+            toggleEditModeBtn.addEventListener('click', () => setMode(isEditMode ? 'none' : 'edit'));
+            generateULoopBtn.addEventListener('click', generateULoopFromSelection);
+            clearDrawingBtn.addEventListener('click', clearDrawing);
+            exportJsonBtn.addEventListener('click', exportJSON);
+
+            paramAdjustBtn.addEventListener('click', showSettingsModal);
+            saveSettingsBtn.addEventListener('click', saveSettings);
+            cancelSettingsBtn.addEventListener('click', hideSettingsModal);
+            togglePlaneVisibilityBtn.addEventListener('click', togglePlaneVisibility);
+
+            undoBtn.addEventListener('click', undo);
+            designModeSelect.addEventListener('change', onDesignModeChange);
+
+
+            updateDiameterDisplay();
+            animate();
+        }
+
+        //导入模型界面
+        function showLoaderWindow(){
+            document.getElementById('import-btn').addEventListener('click', () => {
+                document.getElementById('initial-modal').style.display = 'flex';
+            });
+            document.getElementById('close-modal').addEventListener('click', () => {
+                document.getElementById('initial-modal').style.display = 'none';
+                if (!dentalModel) disablePageInteraction(); // 未导入模型则保持禁用
+            });
+        }
+        function loadSTL(event) {//加载stl文件
+            const file = event.target.files[0];//获取文件对象
+            if (!file) return;
+            loaderSpinner.classList.remove('hidden');//显示加载动画
+
+            //
+            if (dentalModel) scene.remove(dentalModel);//如果已有牙模，先移除
+            planeControlPoints.forEach(p => scene.remove(p));//移除参考平面的控制点
+            planeControlPoints = [];//清空参考平面控制点数组
+            if (referencePlaneMesh) scene.remove(referencePlaneMesh);
+            referencePlaneMesh = null;
+            confirmPlaneBtn.disabled = true;//禁用确认平面按钮
+            togglePlaneVisibilityBtn.disabled = true;//禁用隐藏平面按钮
+            //还没有点击三个点定义平面
+            clearDrawing();//清除已有的点和曲线
+            historyStack = [];//清空历史记录栈
+            undoBtn.disabled = true;//禁用撤销按钮
+
+            //读取文件内容
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const geometry = new STLLoader().parse(e.target.result);
+                    geometry.center();
+                    geometry.computeVertexNormals();
+                    const material = new THREE.MeshStandardMaterial({
+                        color: 0xeaeaea,
+                        metalness: 0.1,
+                        roughness: 0.6,
+                        transparent: true
+                    });
+                    dentalModel = new THREE.Mesh(geometry, material);
+                    dentalModel.rotation.x = -Math.PI / 2;
+                    scene.add(dentalModel);
+
+                    // 更新导入界面状态，不显示
+                    document.getElementById('initial-modal').style.display = 'none';
+
+                    loaderSpinner.classList.add('hidden');
+
+
+                    opacitySlider.value = 1;
+
+
+                    planeSetupSection.classList.remove('hidden');//显示设置参考平面模块,2.设置参考平面部分
+                    togglePlaneSetupMode();//进入平面设置模式
+                }catch (error) {
+                    console.error('STL加载失败:', error);
+                }
+            };
+            reader.readAsArrayBuffer(file);//读取文件内容
+        }
+
+
+        // --- History Management (Undo) ---//当前状态所有点信息
+        function saveState() {//保存当前状态以便撤销
+            const state = {//创建一个状态对象,相当于数组列表，第一个数组是points，第二个数组是labialBowControlPoints
+                // Deep clone points with their userData
+                points: points.map(p => {//map函数返回一个新数组
+                    const newP = p.clone();
+                    if (p.userData) {
+                        // Simple object copy is fine here
+                        newP.userData = { ...p.userData };//userData是点的附加信息
+                    }
+                    return newP;//返回克隆后的点，点的userData也被克隆，整个点对象被克隆
+                }),
+                labialBowControlPoints: labialBowControlPoints.map(p => p.clone())//唇弓设计模式下的点也被克隆
+            };
+            historyStack.push(state);
+            undoBtn.disabled = false;//启用撤销按钮
+        }
+
+
+        function undo() {//撤销回上一步操作
+            if (historyStack.length === 0) return;
+            const prevState = historyStack.pop();
+
+            // Re-clone from the state to prevent mutation issues返回上一个状态
+            points = prevState.points.map(p => {
+                const newP = p.clone();
+                if (p.userData) {
+                    newP.userData = { ...p.userData };
+                }
+                return newP;
+            });
+            labialBowControlPoints = prevState.labialBowControlPoints.map(p => p.clone());
+
+            undoBtn.disabled = historyStack.length === 0;//如果历史记录栈为空，禁用撤销按钮
+
+            deselectAllPoints();//清空所有选择点，按撤销以后，自由绘制中已选择u型曲的点会被清空
+
+            if (designModeSelect.value === 'labial_bow' && typeof constructLabialBow === 'function') {
+                constructLabialBow();//唇弓设计模式下，撤销后重新构建唇弓,这个函数没有实现
+            } else {//所有设计模式撤销最后一步，重新绘制
+                redrawScene();//已有的点改变，重新绘制场景，先消除原来的点场景和可拖拽对象，再根据points数组重新创建点和曲线
+            }
+        }
+
+
+        // --- Settings Modal Logic ---
+        function showSettingsModal() {//监听参数设置按钮
+            wireRadiusInput.value = (wireRadius * 2).toFixed(2);//内部用的是半径存储计算，显示用的是直径，toFixed(2)保留两位小数
+            markerRadiusInput.value = (markerRadius * 2).toFixed(2);
+            uloopWidthInput.value = uLoopWidth;
+            uloopHeightInput.value = uLoopHeight;
+            settingsModal.classList.remove('hidden');//显示参数设置弹窗,参数设置按钮dom元素
+        }
+
+        function hideSettingsModal() {//监听取消按钮
+            settingsModal.classList.add('hidden');//隐藏参数设置弹窗
+        }
+
+        function saveSettings() {//监听参数保存按钮 // 读取并验证输入值
+
+            const newWireDiameter = parseFloat(wireRadiusInput.value);//设置新值，有字符转化为数字
+            const newMarkerDiameter = parseFloat(markerRadiusInput.value);
+            const newULoopWidth = parseFloat(uloopWidthInput.value);
+            const newULoopHeight = parseFloat(uloopHeightInput.value);
+
+
+            if (!isNaN(newWireDiameter) && newWireDiameter > 0) wireRadius = newWireDiameter / 2;
+            if (!isNaN(newMarkerDiameter) && newMarkerDiameter > 0) markerRadius = newMarkerDiameter / 2;//弓丝和标记点的半径，内部使用半径计算
+            if (!isNaN(newULoopWidth) && newULoopWidth > 0) uLoopWidth = newULoopWidth;
+            if (!isNaN(newULoopHeight) && newULoopHeight > 0) uLoopHeight = newULoopHeight;
+
+            updateDiameterDisplay();//更新显示弓丝直径
+            redrawScene();//重新绘制场景，更新点和曲线的大小
+            hideSettingsModal();//保存以后关闭参数设置弹窗
+        }
+
+        function updateDiameterDisplay() {//就是那一行字
+            diameterDisplay.textContent =  `弓丝直径:  ${(wireRadius * 2).toFixed(2)} mm`;//显示弓丝直径，旁边有一个参数改变的按钮
+        }
+
+
+        // --- Mode Management ---
+        function onDesignModeChange() {//设置模式选择，监听设计模式下拉菜单,那些按钮需要显示隐藏可以根据设计模式来
+            clearDrawing();//切换模式时清除所有当前绘制
+            const designMode = designModeSelect.value;//dom元素,设计模式下拉菜单
+            generateULoopBtn.style.display = (designMode === 'straight' || designMode === 'smooth') ? 'block' : 'none';
+            setMode('draw');           //这里表示唇弓没有生成u型曲面按钮
+            //在模型上的操作
+        }
+
+
+        function setMode(mode) {//同时监听绘制和编辑按钮
+            isDrawingMode = mode === 'draw';
+            isEditMode = mode === 'edit';
+            isPlaneSetupMode = mode === 'plane';
+            //在模型上的操作有三种模式，绘制，编辑，平面设置，全局变量改变知道当前模式就知道如何绘制
+            //在上方设置监听事件那看出点击两次同一个按钮会取消该模式
+            toggleDrawModeBtn.classList.remove('bg-yellow-600', 'bg-gray-600');//开始绘制按钮dom
+            toggleEditModeBtn.classList.remove('bg-green-600', 'bg-gray-600');//编辑点按钮dom
+            document.getElementById('step-2.1').style.display = 'block';//打开面板
+            if (isDrawingMode) {
+                toggleDrawModeBtn.classList.add('bg-yellow-600');
+                statusMessage.textContent =  '绘制模式：单击牙模添加点。' ;
+            } else if (isEditMode) {
+                toggleEditModeBtn.classList.add('bg-green-600');
+                statusMessage.textContent =  '编辑模式：拖动点修改，Shift+单击选择点。' ;
+            } else {
+                toggleDrawModeBtn.classList.add('bg-gray-600');
+                toggleEditModeBtn.classList.add('bg-gray-600');
+                 statusMessage.textContent =  '请选择操作模式。' ;//提示词
+            }
+            deselectAllPoints();//清空所有u型生成选择点
+        }
+
+        function clearDrawing() {//监听清除全部按钮，清除所有点和曲线，重置状态
+
+            if (points.length > 0) saveState();//保存当前状态以便撤销，清除全部点以后依旧能撤销返回上一状态
+            points = [];
+            labialBowControlPoints = [];
+
+            pointMarkers.forEach(marker => scene.remove(marker));//移除所有点的球体对象
+            pointMarkers = [];
+            draggableObjects = [];
+
+            if(dragControls) dragControls.dispose();//销毁拖动控制器
+            setupDragControls();//重新创建拖动控制器
+
+            if (archCurveObject) scene.remove(archCurveObject);//移除主曲线对象
+            archCurveObject = null;
+
+
+            exportJsonBtn.disabled = true;//禁用导出按钮
+            generateULoopBtn.disabled = true;//禁用生成u型曲按钮
+            if (!designSection.classList.contains('hidden')) {//设计部分显示时,设置唇弓那一整部分designSection
+                setMode('none');//所有模式都不启用，设置所有模式变量为false，绘制编辑
+            }//点击清除全部按钮以后且设计部分显示时，所有模式都不启用
+            updateArchCurve();//更新曲线显示，保持数据同步
+        }
+
+
+        //监听调整平面按钮
+        function togglePlaneSetupMode() {
+            setMode('plane');//进入平面设置模式
+            planeStatus.textContent =  `请在牙模上点击  ${3 - planeControlPoints.length}  个点来定义平面。` ;
+            if (planeControlPoints.length === 3) {
+                 planeStatus.textContent =  '请拖动控制点调整平面，或点击“确认平面”。' ;
+            }
+
+            designSection.classList.add('hidden');//隐藏3.设计唇弓部分，看成一整个模块，弄成dom元素
+            exportSection.classList.add('hidden');//隐藏4.导出部分
+            //当在绘制或调整点的时候，点击调整平面按钮，隐藏可拖拽点和主曲线
+             // Hide draggable points and show plane control points隐藏可拖拽点，显示平面控制点
+            draggableObjects.forEach(p => p.visible = false);
+            if (archCurveObject) archCurveObject.visible = false;
+
+            // Show plane control points and reference plane显示平面控制点和平面
+            planeControlPoints.forEach(p => p.visible = true);
+            if (referencePlaneMesh) {//平面网格，显示以后按钮转为隐藏平面
+                referencePlaneMesh.visible = true;
+
+            }
+
+            if (dragControls) dragControls.dispose();//把点的拖动控制器销毁,避免与平面控制点冲突
+            // Setup drag controls for plane control points设置平面控制点的拖动控制器
+            planeDragControls = new DragControls(planeControlPoints, camera, renderer.domElement);
+            planeDragControls.addEventListener('dragstart', () => { orbitControls.enabled = false; });
+            planeDragControls.addEventListener('drag', updateReferencePlane);
+            planeDragControls.addEventListener('dragend', () => { orbitControls.enabled = true; });
+        }
+
+
+        function addPlaneControlPoint(position) {//添加平面控制点
+            if (planeControlPoints.length >= 3) return;
+            const geometry = new THREE.SphereGeometry(0.4, 32, 32);//控制点球体的大小
+            const material = new THREE.MeshBasicMaterial({ color: 0x00FFFF });
+            const point = new THREE.Mesh(geometry, material);
+            point.position.copy(position);
+            scene.add(point);//把点加到场景
+             // Store index for potential future use存储索引以备将来使用
+            planeControlPoints.push(point);
+            planeStatus.textContent =  `请在牙模上点击  ${3 - planeControlPoints.length}  个点来定义平面。` ;
+
+
+            if (planeControlPoints.length === 3) {
+                updateReferencePlane();//更新参考平面
+                confirmPlaneBtn.disabled = false;//启用确认平面按钮
+                planeStatus.textContent =  '平面已定义。可拖动控制点调整，或点击“确认平面”。' ;
+            }
+        }
+
+
+        function updateReferencePlane() {//参考平面更新绘制，更新操作
+            if (planeControlPoints.length < 3) return;
+            const [p1, p2, p3] = planeControlPoints.map(p => p.position);//获取平面的三个控制点
+            const plane = new THREE.Plane().setFromCoplanarPoints(p1, p2, p3);//三点创建平面对象
+            planeNormal.copy(plane.normal);//平面的法向量
+            if (!referencePlaneMesh) {//如果没有参考平面网格
+                const planeGeom = new THREE.PlaneGeometry(200, 200);//200*200的平面几何体
+                const planeMat = new THREE.MeshStandardMaterial({ color: 0x00FFFF, opacity: 0.3, transparent: true, side: THREE.DoubleSide });
+                referencePlaneMesh = new THREE.Mesh(planeGeom, planeMat);
+                scene.add(referencePlaneMesh);
+            }
+            referencePlaneMesh.position.copy(p1);//平面的位置由第一个控制点的位置代表
+            referencePlaneMesh.lookAt(p1.clone().add(plane.normal));//平面的方向由第一个控制点的位置加上法向量代表
+        }
+        //监听
+        function freeDraw(){
+            document.getElementById('step-2.1').style.display = 'block';
+        }
+        function confirmPlane() {//监听确认平面按钮
+            isPlaneSetupMode = false;
+            planeControlPoints.forEach(p => p.visible = false);
+            if (planeDragControls) planeDragControls.dispose();//平面控制点的拖动控制器销毁
+            setupDragControls();//重新设置点的拖动控制器
+            document.getElementById('step-2').style.display = 'block'; // 显示下一步
+
+            designSection.classList.remove('hidden');
+            exportSection.classList.remove('hidden');
+            draggableObjects.forEach(p => p.visible = true);
+            if (archCurveObject) archCurveObject.visible = true;
+            togglePlaneVisibilityBtn.disabled = false;//启用隐藏平面按钮
+            planeStatus.textContent =  '参考平面已确认。' ;
+            setMode('draw');
+        }
+
+        //监听隐藏平面按钮
+        function togglePlaneVisibility() {
+            if (referencePlaneMesh) {
+                referencePlaneMesh.visible = !referencePlaneMesh.visible;
+                togglePlaneVisibilityBtn.textContent = referencePlaneMesh.visible ?  '隐藏'  :  '显示' ;
+            }
+        }
+
+        // canvas画布上的鼠标点击事件，定位点的位置利用射线投射技术
+        function onCanvasMouseDown(event) {//
+            if (event.button !== 0) return;//只监听左键点击,鼠标点击，0代表左键，1代表中键，2代表右键
+
+            //编辑模式中shift键和点击左键同时，点击后增加u型选择点
+            if (isEditMode && event.shiftKey) {//编辑模式中shift键和点击左键同时
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;//将屏幕坐标转换为Three.js，点击开始的位置
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);//相机发出射线，往当前鼠标位置发射
+                const intersects = raycaster.intersectObjects(draggableObjects);//该射线与所有可拖动对象的交点
+
+
+                if (intersects.length > 0) {//如果点击空白处，清除所有u型选择点，颜色改回去
+                    handleULoopSelection(intersects[0].object);//距离射线最近的点的可拖拽对象
+                } else {
+                    deselectAllPoints();
+                }
+
+                event.stopImmediatePropagation();//将U型环选择操作与其他可能的鼠标事件处理逻辑完全隔离
+                return;
+            }
+
+
+            isDraggingView = false;
+            mouseDownPos.set(event.clientX, event.clientY);
+        }
+
+
+        function onCanvasMouseMove(event) {//鼠标移动中
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;//将鼠标点击屏幕坐标转换为three.js坐标
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            if (event.buttons !== 1) return;//左键按下
+            if (mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY)) > 5) {
+                isDraggingView = true;//如果鼠标移动距离大于5像素，认为是拖动视图
+            }
+        }
+
+
+        function onCanvasMouseUp(event) {//鼠标松开
+            if (event.button !== 0) return;
+            if (isDraggingView) return;
+           //如果不是拖动视图，判断是否是定义参考平面
+            if (isPlaneSetupMode && planeControlPoints.length < 3) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(dentalModel);//射线与牙模相交的点
+                if (intersects.length > 0) {
+                    addPlaneControlPoint(intersects[0].point);
+                }
+            } else if (isDrawingMode) {//开始绘制模式
+                addPointAtCursor();
+            }
+        }
+
+
+        // 三点共面逻辑
+        function generateULoopFromSelection() {//监听生成u型曲线按钮
+             if (uLoopSelectionIndices.length !== 2) return;
+            saveState();
+
+            //获取u型选择点的索引,找到那三个点的坐标
+            const [index1, index2] = uLoopSelectionIndices.sort((a, b) => a - b);
+            const p_start = points[index1];
+            const p_end = points[index2];
+
+            const p_mid_ref = (index2 - index1 > 1) ? points[Math.floor((index1 + index2) / 2)] : null;
+
+            const x_hat = new THREE.Vector3().subVectors(p_end, p_start).normalize();//计算u型曲线的x轴方向,起点指向终点
+            let y_hat;
+
+
+            if (p_mid_ref) {
+                statusMessage.textContent =  "使用三点共面为U型曲定向。" ;
+                // v_perp = v1m - (v1m·x_hat) * x_hat
+                const v1m = new THREE.Vector3().subVectors(p_mid_ref, p_start);//起点指向中点的向量
+                const v_perp = v1m.clone().sub(x_hat.clone().multiplyScalar(v1m.dot(x_hat)));//获得垂直分量，起点指向中点的向量减投影向量
+                //误差计算，可能是因为点的位置误差，导致垂直分量为0，当为0的时候
+                y_hat = (v_perp.lengthSq() < 0.0001) ? new THREE.Vector3().crossVectors(x_hat, planeNormal).normalize() : v_perp.normalize();
+            //确保u型曲方向不要偏向反方向
+                const curveMidpoint = p_start.clone().lerp(p_end, 0.5);
+                const outVector = new THREE.Vector3().subVectors(p_mid_ref, curveMidpoint);
+                if (y_hat.dot(outVector) < 0) {
+                    y_hat.negate();//如果垂直分量与指向中点的向量点积小于0，说明垂直分量指向反方向，需要取反
+                }
+            } else {//只有两点
+                statusMessage.textContent =  "注意: 使用参考平面为U型曲定向。" ;
+                y_hat = new THREE.Vector3().crossVectors(x_hat, planeNormal).normalize();
+            }
+
+
+            const uLoopGeometry = generateULoopGeometry(p_start, p_end, y_hat, uLoopHeight);//u型曲高度
+
+            const pointsToRemove = index2 - index1 - 1;//删除u型选择点之间的点
+            points.splice(index1 + 1, pointsToRemove, ...uLoopGeometry);
+            //从起点后一个点开始，删除u型选择点之间的点，增加uLoopGeometry数组所有点
+            deselectAllPoints();//清除u型选择点
+            redrawScene();//重新绘制场景
+        }
+
+        // shift+点击处理u型曲线选择点函数
+        function generateULoopGeometry(baseStart, baseEnd, y_hat, height) {//生成u型曲线中间点数组，u型内部点
+            const armTopStart = baseStart.clone().add(y_hat.clone().multiplyScalar(height));//起点指向终点的向量沿着y轴方向偏移height高度，生成新起点
+            const armTopEnd = baseEnd.clone().add(y_hat.clone().multiplyScalar(height));
+            //高度指的是x轴到半圆直径的距离
+
+            const loopPoints = [];
+
+
+            // Point 1: Semicircle Start (Visible)
+            armTopStart.userData = { type: 'uloop' };
+            loopPoints.push(armTopStart);
+
+
+            const semicircleCenter = armTopStart.clone().lerp(armTopEnd, 0.5);//计算半圆圆心
+            const startVec = new THREE.Vector3().subVectors(armTopStart, semicircleCenter);
+
+            const x_hat = new THREE.Vector3().subVectors(baseEnd, baseStart).normalize();//x轴，y轴，z轴
+            const z_hat = new THREE.Vector3().crossVectors(x_hat, y_hat).normalize();
+
+            const numSemicirclePoints = 16; // Total points for the half circle//半圆有16个点
+            const midPointIndex = Math.floor(numSemicirclePoints / 2);//半圆中点索引
+
+
+            for (let i = 1; i < numSemicirclePoints; i++) {
+                const angle = -Math.PI * (i / numSemicirclePoints);//生成从0到-π的弧度值（顺时针方向）
+                const point = new THREE.Vector3().copy(startVec).applyAxisAngle(z_hat, angle).add(semicircleCenter);
+
+                if (i === midPointIndex) {
+                    // Point 2: Semicircle Midpoint (Visible)
+                    point.userData = { type: 'uloop' };//表示为u型点
+                } else {
+                    // All other internal points (Hidden)
+                    point.userData = { isULoopInternal: true, type: 'uloop' };//表示为u型内部点
+                }
+                loopPoints.push(point);
+            }
+
+            // Point 3: Semicircle End (Visible)
+            armTopEnd.userData = { type: 'uloop' };
+            loopPoints.push(armTopEnd);
+
+            return loopPoints;
+        }
+
+        function handleULoopSelection(marker) {//处理u型曲线选择点， uLoopSelectionIndices增加删除逻辑函数
+            const index = marker.userData.index;
+            const selectionIndex = uLoopSelectionIndices.indexOf(index);
+            if (selectionIndex > -1) {//如果选择数组中存在该索引,再点击以后表示没有了，当鼠标点击之前已经存在，点击后返回大于-1的值，然后删除改点
+                uLoopSelectionIndices.splice(selectionIndex, 1);
+                marker.material.color.set(0xff0000);
+            } else {
+                if (uLoopSelectionIndices.length >= 2) {//如果选择数组中存在2个点，删除第一次点击的点
+                    const oldIndex = uLoopSelectionIndices.shift();//移除数组第一个元素，并返回
+                    const oldMarker = draggableObjects.find(m => m.userData.index === oldIndex);
+                    if(oldMarker) oldMarker.material.color.set(0xff0000);
+                }
+                uLoopSelectionIndices.push(index);
+                marker.material.color.set(SELECTION_COLOR_ULOOP);
+            }
+            generateULoopBtn.disabled = uLoopSelectionIndices.length !== 2;
+        }
+
+        function deselectAllPoints() {//取消所有点的选择,选择u型曲线点被取消
+            uLoopSelectionIndices.forEach(i => {
+                const marker = draggableObjects.find(m => m.userData.index === i);
+                if (marker) marker.material.color.set(0xff0000);//重置为默认颜色
+            });
+            uLoopSelectionIndices = [];//清空选择数组，u型曲线点被取消
+            generateULoopBtn.disabled = true;//生成u型曲线按钮禁用
+        }
+
+        function addPointAtCursor() {
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(dentalModel);
+
+
+            if (intersects.length > 0) {
+                saveState();//保存当前状态，包括点、曲线、参考平面等
+                const centerlinePoint = intersects[0].point.clone();//克隆点对象，避免修改原始点
+                // 计算偏移点,原先是偏移点放进去
+                //const offsetPoint = getOffsetPoint(intersects[0]);
+                points.push(centerlinePoint);
+                redrawScene();
+            }
+        }
+
+        function redrawScene() {
+            //从新绘制点，曲线，包括点标记和可拖拽对象，包括点显示
+            // Clean up old markers
+            //每次加点、删点、撤销、自动生成等操作后，调用 redrawScene，让界面和数据保持一致。
+            //保证所有点都能正确显示、拖动，曲线实时更新
+            pointMarkers.forEach(marker => scene.remove(marker));//移除旧的点标记，场景里消失
+            pointMarkers = [];//清空绘制显示点的球体对象数组
+            draggableObjects = [];//可拖拽对象数组清空
+
+
+            // Recreate markers based on the current points array
+            points.forEach((p, i) => {
+                addPointMarker(p, i);//i是下标、p是点对象，存储点的信息
+            });//根据当前点数组重新创建标记，更新可拖拽对象数组
+
+             // Update drag controls with the new set of draggable objects
+
+
+            updateArchCurve();//更新曲线
+            setupDragControls(); // Re-setup drag controls for the new set of draggable objects
+            //为新的可拖拽对象重新设置拖拽控制器
+        }
+
+        function addPointMarker(position, index) {//为点添加可视化标记，相当于添加pointMarkers和draggableObjects用于显示和拖拽
+            const isULoopInternal = position.userData && position.userData.isULoopInternal;
+
+
+            const markerGeometry = new THREE.SphereGeometry(markerRadius, 16, 16);
+            const isSelectedForULoop = uLoopSelectionIndices.includes(index);//index是点的下标，判断这个点是否被选择为u型曲线点
+            const markerMaterial = new THREE.MeshBasicMaterial({ color: isSelectedForULoop ? SELECTION_COLOR_ULOOP : 0xff0000 });
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            //创建点的几何体和材质，颜色根据是否被选择为u型曲线点而定，pointMarkers是红色，选择u型曲线点是紫色
+            marker.position.copy(position);//球体位置为当前点坐标
+
+            // Preserve the point's userData in the marker's userData
+            marker.userData = { ...(position.userData || {}), index: index };
+
+            if (!marker.userData.type) {
+                marker.userData.type = 'normal';
+            }
+
+
+            scene.add(marker);//把球体添加到场景
+            pointMarkers.push(marker); // Keep all markers for easy cleanup，现有所有点的pointMarkers数组
+
+
+            // Only make it visible and draggable if it's not a hidden U-loop point
+            if (isULoopInternal) {//u型曲线内部点，不显示也不可拖拽
+                marker.visible = false;
+            } else {
+                draggableObjects.push(marker);
+            }
+        }
+
+        function updateArchCurve() {//根据点数组更新曲线
+            if (archCurveObject) {//如果存在曲线对象，先移除旧的曲线对象
+                scene.remove(archCurveObject);
+                archCurveObject.geometry.dispose();//释放旧的几何体
+                archCurveObject.material.dispose();//释放旧的材质
+                archCurveObject = null;//曲线对象设为null,确保不会出现内存泄漏
+            }
+
+
+            const currentPoints = points;
+            const hasEnoughPoints = currentPoints.length >= 2;
+            exportJsonBtn.disabled = !hasEnoughPoints;//如果点数组长度小于2，禁用导出按钮
+
+
+            if (hasEnoughPoints) {//有两个点及以上可以画曲线
+                const designMode = designModeSelect.value;
+                let curve;
+
+
+                if (designMode === 'smooth' || designMode === 'labial_bow') {
+                    //生成平滑过渡的曲线路径，根据全局点数组
+                     curve = new THREE.CatmullRomCurve3(currentPoints, false, 'catmullrom', 0.5);
+                } else { // 'straight'
+                    const curvePath = new THREE.CurvePath();
+                    for (let i = 0; i < currentPoints.length - 1; i++) {
+                        const lineCurve = new THREE.LineCurve3(currentPoints[i], currentPoints[i+1]);//生成直线路径
+                        curvePath.add(lineCurve);
+                    }
+                    curve = curvePath;
+                }
+
+                if (curve) {//如果有路径，画线
+                    const tubeGeometry = new THREE.TubeGeometry(curve, 256, wireRadius, 12, false);
+                    const tubeMaterial = new THREE.MeshStandardMaterial({ color: 0x00bfff, metalness: 0.5, roughness: 0.2, emissive: 0x112233 });
+                    archCurveObject = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                    scene.add(archCurveObject);
+                }
+            }
+        }
+
+        function exportJSON() {//监听导出按钮点击事件
+            if (points.length < 1) return;
+            const exportData = {
+                points: points.map(p => ({x: p.x, y: p.y, z: p.z})) // Export clean data without userData
+            };
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' }));
+            a.download = 'arch_design.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function importJSON(event) {//监听导入json按钮点击事件
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.points && Array.isArray(data.points)) {
+                        // 更新状态，不显示导入面板
+                        document.getElementById('initial-modal').style.display = 'none';
+
+                        points = data.points.map(p => new THREE.Vector3(p.x, p.y, p.z));
+                        redrawScene();
+                        statusMessage.textContent = "设计导入成功。";
+                    } else {
+                        statusMessage.textContent = "导入失败：JSON格式不正确。";
+                    }
+                } catch (error) {
+                    console.error("Error parsing JSON file:", error);
+                    statusMessage.textContent =  "导入失败：无效的JSON文件。" ;
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);//请求浏览器在下一次重绘之前调用animate函数，每次绘制都会调用，循环
+            renderer.render(scene, camera);//命令Three.js渲染器将3D场景绘制到Canvas元素上
+        }
+
+        //关闭导入界面按钮禁用
+        function disablePageInteraction() {
+            document.getElementById('export-btn').disabled = true;
+            document.getElementById('save-btn').disabled = true;
+            document.getElementById('undo-btn').disabled = true;
+            document.getElementById('redo-btn').disabled = true;
+            document.getElementById('clear-design').disabled = true;
+            document.getElementById('reset-all').disabled = true;
+            document.getElementById('plane-adjust').disabled = true;
+            document.getElementById('plane-confirm').disabled = true;
+            document.getElementById('plane-reset').disabled = true;
+            document.getElementById('mode-manual').disabled = true;
+            document.getElementById('mode-auto').disabled = true;
+            if (dragControls) dragControls.enabled = false;
+        }
+        //各种弹窗
+        function initStyleAdjust() {
+            // 帮助弹窗事件
+            document.getElementById('help-btn').addEventListener('click', () => {
+                document.getElementById('help-modal').style.display = 'flex';
+            });
+            document.getElementById('close-help').addEventListener('click', () => {
+                document.getElementById('help-modal').style.display = 'none';
+            });
+            document.getElementById('help-modal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('help-modal')) {
+                    document.getElementById('help-modal').style.display = 'none';
+                }
+            });
+
+            // 样式调整弹窗事件
+            const styleModal = document.getElementById('style-modal');
+            document.getElementById('style-adjust').addEventListener('click', () => {
+                updateStyleSliders(); // 更新滑块状态
+                styleModal.style.display = 'flex';
+            });
+            document.getElementById('close-style').addEventListener('click', () => {
+                styleModal.style.display = 'none';
+            });
+            styleModal.addEventListener('click', (e) => {
+                if (e.target === styleModal) styleModal.style.display = 'none';
+            });
+
+            // 模型透明度调整
+            const modelOpacitySlider = document.getElementById('model-opacity');
+            const modelOpacityValue = document.getElementById('model-opacity-value');
+            modelOpacitySlider.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value) / 100;
+                modelOpacityValue.textContent = value.toFixed(1);
+                if (dentalModel) {
+                    dentalModel.material.opacity = value;
+                    currentModelOpacity = value;
+                }
+            });
+
+            // 平面透明度调整
+            const planeOpacitySlider = document.getElementById('plane-opacity-adjust');
+            const planeOpacityValue = document.getElementById('plane-opacity-value');
+            planeOpacitySlider.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value) / 100;
+                planeOpacityValue.textContent = value.toFixed(1);
+                if (referencePlaneMesh) {
+                    referencePlaneMesh.material.opacity = value;
+                    currentPlaneOpacity = value;
+                }
+            });
+        }
+        //样式调整滑条
+        function updateStyleSliders() {
+            const modelOpacitySlider = document.getElementById('model-opacity');
+            const modelOpacityValue = document.getElementById('model-opacity-value');
+            const planeOpacitySlider = document.getElementById('plane-opacity-adjust');
+            const planeOpacityValue = document.getElementById('plane-opacity-value');
+
+            // 模型透明度
+            if (dentalModel) {
+                modelOpacitySlider.disabled = false;
+                modelOpacitySlider.value = Math.round(currentModelOpacity * 100);
+                modelOpacityValue.textContent = currentModelOpacity.toFixed(1);
+            } else {
+                modelOpacitySlider.disabled = true;
+                modelOpacitySlider.value = 100;
+                modelOpacityValue.textContent = '1.0';
+            }
+
+            // 平面透明度
+            if (referencePlaneMesh) {
+                planeOpacitySlider.disabled = false;
+                planeOpacitySlider.value = Math.round(currentPlaneOpacity * 100);
+                planeOpacityValue.textContent = currentPlaneOpacity.toFixed(1);
+            } else {
+                planeOpacitySlider.disabled = true;
+                planeOpacitySlider.value = 50;
+                planeOpacityValue.textContent = '0.5';
+            }
+        }
+        // 控制面板折叠/展开
+        function togglePanel() {
+            isPanelExpanded = !isPanelExpanded;
+            const content = document.getElementById('panel-content');
+            const toggle = document.getElementById('panel-toggle').querySelector('.panel-toggle');
+
+            if (isPanelExpanded) {
+                content.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = '▲';
+            }
+        }
+        //选择设计模式
+        function setDesignMode(mode) {
+            // 重置按钮样式
+            document.getElementById('mode-manual').className = 'step-btn btn-secondary';
+            document.getElementById('mode-auto').className = 'step-btn btn-secondary';
+
+            // 初始化对应模式
+            if (mode === 'manual') {
+                document.getElementById('mode-manual').className = 'step-btn btn-primary';
+                initManualMode();
+            } else {
+                document.getElementById('mode-auto').className = 'step-btn btn-primary';
+                initAutoMode();
+            }
+
+            document.getElementById('export-btn').disabled = false; // 启用导出
+        }
+        // 重置所有
+        function resetAll() {
+            // 清除模型
+            if (dentalModel) {
+                scene.remove(dentalModel);
+                dentalModel = null;
+            }
+
+            // 清除平面和设计
+            resetPlane();
+            clearCurrentDesign(false);
+
+            // 重置历史
+            historyStack = [];
+            redoStack = [];
+            updateHistoryButtons();
+
+            // 重置UI状态
+            document.getElementById('export-btn').disabled = true;
+            document.getElementById('save-btn').disabled = true;
+            document.getElementById('step-2').style.display = 'none';
+            disablePageInteraction();
+            document.getElementById('initial-modal').style.display = 'flex';
+        }
+        init();
+    </script>
+</body>
+</html>
