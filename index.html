@@ -189,13 +189,11 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { DragControls } from 'three/addons/controls/DragControls.js';
 
-        // --------------------------
         // 全局变量定义
-        // --------------------------
         let scene, camera, renderer, orbitControls; // Three.js核心对象
         let dentalModel = null; // 牙模模型
         let planeControlPoints = [], referencePlaneMesh = null; // 参考平面相关
-        let points = [], pointMarkers = [], draggableObjects = []; // 唇弓曲线节点
+        let points = [],archCurveObject = null, pointMarkers = [], draggableObjects = []; // 唇弓曲线节点
         let dragControls = null; // 拖拽控制器
         let historyStack = [], redoStack = []; // 历史记录栈
         let isPanelExpanded = true; // 控制面板展开状态
