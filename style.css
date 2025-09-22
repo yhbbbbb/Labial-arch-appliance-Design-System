@@ -154,20 +154,24 @@ body {
 
 .step-actions {
     display: flex;
-    gap: 5px;
-    margin-bottom: 12px;
+    gap: 25px;
+    justify-content: center;
+    align-items: center;
+
 }
 
 .step-btn {
     flex: 1; /* 按钮平均分配宽度 */
-    padding: 5px 0;
+    padding: 5px 12px;
     border-radius: 4px;
-    border: 1px solid #ACD78E;
+    border: none;
     font-size: 12px;
     cursor: pointer;
     transition: all 0.2s;
 }
-
+#plane-adjust #plane-confirm #toggle-plane-visibility #plane-reset{
+    padding: 5px 20px;
+}
 .btn-primary {
     background-color: #E3F2D9;
     color: #333;
@@ -193,11 +197,11 @@ body {
 
 .guide-text {
     color: #666;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.4;
     margin-top: 5px; /* 提示文本与按钮间距 */
     border: 1px solid #ccc; /* 添加灰色边框 */
-    padding: 10px; /* 内边距，使文本与边框之间有间距 */
+    padding: 5px; /* 内边距，使文本与边框之间有间距 */
     border-radius: 5px; /* 可选：圆角边框 */
     background-color: #f9f9f9; /* 可选：设置背景颜色以增强可读性 */
 }
@@ -244,7 +248,10 @@ body {
 .control-btn:hover {
     background-color: #f0f0f0;
 }
-
+#points-count{
+    font-size: 15px;
+    color: #aaa;
+}
 
 /* 弹窗样式 */
 /* 初始导入弹窗 */
@@ -318,59 +325,192 @@ body {
 /* 帮助弹窗 */
 #help-modal {
     position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: none; /* 默认隐藏 */
-    align-items: center;
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
     justify-content: center;
-    z-index: 200;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
 }
 
 .help-content {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    max-width: 650px;
     width: 90%;
-    max-width: 600px;
-    background-color: white;
-    border-radius: 8px;
-    padding: 24px;
-    max-height: 80vh; /* 限制高度，超出滚动 */
-    overflow-y: auto;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease-out;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    overflow: hidden;
 }
 
 .help-title {
-    color: #333;
-    font-size: 20px;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
+    background: linear-gradient(90deg, #0066cc 0%, #0099ff 100%);
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    padding: 16px 20px;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+.help-body {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #0066cc #f0f0f0;
 }
 
+/* 美化滚动条 */
+.help-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.help-body::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+.help-body::-webkit-scrollbar-thumb {
+    background: #0066cc;
+    border-radius: 4px;
+}
+
+.help-body::-webkit-scrollbar-thumb:hover {
+    background: #0052a3;
+}
 .help-section {
-    margin-bottom: 16px;
+     margin-bottom: 20px;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    border-left: 3px solid #0066cc;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.help-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.15);
 }
 
+/* 统一文本样式 */
+.help-section h4,
+.help-section p,
+.help-section ul,
+.help-section li,
+.help-section b {
+    font-family: 'Inter', 'Microsoft YaHei', sans-serif;
+    color: #666;
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 1.5;
+}
+
+/* 标题样式 */
 .help-section h4 {
     color: #0066cc;
+    font-weight: bold;
     margin-bottom: 8px;
     font-size: 16px;
 }
 
-.help-section p {
-    color: #666;
-    font-size: 14px;
-    line-height: 1.5;
+/* 列表样式 */
+.help-section ul {
+    padding-left: 20px;
+    margin: 8px 0;
 }
 
+.help-section li {
+    margin-bottom: 6px;
+    position: relative;
+    padding-left: 5px;
+}
+
+.help-section li::before {
+    content: "•";
+    color: #0066cc;
+    font-weight: bold;
+    position: absolute;
+    left: -18px;
+    font-size: 16px;
+}
+/* 强调文本样式 */
+.help-section b {
+    color: #0066cc;
+    font-weight: bold;
+}
+
+/* 关闭按钮样式 */
 .close-help {
-    background-color: #E3F2D9;
-    color: #333;
-    border: 1px solid #ACD78E;
-    padding: 8px 16px;
-    border-radius: 4px;
+    background: linear-gradient(90deg, #0066cc 0%, #0099ff 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 0 0 12px 12px;
+    font-size: 14px;
+    font-weight: bold;
     cursor: pointer;
-    margin-top: 16px;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+.close-help:hover {
+    background: linear-gradient(90deg, #0052a3 0%, #0077cc 100%);
+    transform: translateY(-1px);
 }
 
+.close-help:active {
+    transform: translateY(0);
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .help-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .help-title {
+        font-size: 20px;
+        padding: 14px 16px;
+    }
+
+    .help-body {
+        padding: 16px;
+    }
+
+    .help-section {
+        padding: 12px;
+    }
+}
 
 /* 样式调整弹窗 */
 #style-modal {
@@ -552,4 +692,60 @@ body {
     border-radius: 5px;
     padding: 5px;
     z-index: 1;
+}
+/* 悬停效果 */
+/* 工具提示基础样式 */
+.nav-btn {
+  position: relative; /* 确保提示框相对于按钮定位 */
+}
+
+/* 提示文字主体 */
+.nav-btn[data-tooltip]::after {
+  content: attr(data-tooltip); /* 使用data-tooltip属性的值作为提示文字 */
+  position: absolute;
+  top: 100%; /* 显示在按钮下方 */
+  left: 50%;
+  margin-top: 8px; /* 与按钮保持一定距离 */
+  transform: translateX(-50%) scale(0.9);
+  transform-origin: top center;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap; /* 防止文字换行 */
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* 悬停时显示提示框 */
+.nav-btn:hover[data-tooltip]::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) scale(1); /* 缩放至正常大小 */
+}
+
+/* 小三角形指示器 */
+.nav-btn[data-tooltip]::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 5px); /* 位于提示框下方 */
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  border-width: 5px 5px 0;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.8) transparent transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover[data-tooltip]::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) scale(1);
 }
